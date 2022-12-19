@@ -4,15 +4,18 @@ import com.example.app__2022_12_19_1.domain.ChatMessage;
 import com.example.app__2022_12_19_1.domain.RsData;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Controller
 @RequestMapping("/chat")
+@Slf4j
 public class ChatController {
 
     private List<ChatMessage> chatMessages = new ArrayList<>();
@@ -40,15 +43,29 @@ public class ChatController {
         return new RsData("S-1", "메세지가 작성되었습니다", new WriteMessageResponse(chatMessage.getId()));
     }
 
+    @AllArgsConstructor
+    @Getter
+    public static class MessagesResponse {
+        private final List<ChatMessage> messages;
+    }
+
+    @AllArgsConstructor
+    @Getter
+    public static class MessagesRequest {
+        private int fromId;
+    }
+
     @GetMapping("/messages")
     @ResponseBody
-    public RsData<List<ChatMessage>> messages(@RequestParam(defaultValue = "0") int fromId) {
+    public RsData<MessagesResponse> messages(MessagesRequest request) {
+        MessagesResponse fromChatMessages = new MessagesResponse(chatMessages);
 
-        List<ChatMessage> fromChatMessages= null;
+        if(request.getFromId() != 0) {
+            int index = IntStream.range(0, chatMessages.size()).filter(i -> chatMessages.get(i).getId() == request.getFromId()).findFirst().orElse(-1);
 
-        if(fromId == 0) fromChatMessages = chatMessages;
-        else fromChatMessages = chatMessages.stream().skip(fromId).collect(Collectors.toList());
+            if(index != -1) fromChatMessages = new MessagesResponse(chatMessages.subList(index, chatMessages.size()));
+        }
 
-        return new RsData("S-1", "메세지가 작성되었습니다", fromChatMessages);
+        return new RsData("S-1", "메세지가 작성되었습니다", fromChatMessages.getMessages());
     }
 }
